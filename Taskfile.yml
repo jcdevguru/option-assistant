@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  build:
+    cmds:
+      - go build -v ./...
+    silent: false
+  gen-docs:
+    cmds:
+      - cd server; swag init -g main.go
+    silent: false
+  run-server:
+    cmds:
+      - cd server; go run .

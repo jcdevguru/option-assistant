@@ -1,0 +1,113 @@
+definitions:
+  main.AssetStrikeExpiryPrice:
+    description: Contains strike and expiry prices for a given asset price
+    properties:
+      assetPrice:
+        description: Asset price
+        type: number
+      strikeExpiryPrices:
+        description: Prices per strike and expiry
+        items:
+          $ref: '#/definitions/main.StrikeExpiryPrice'
+        type: array
+    type: object
+  main.ExpiryPrice:
+    description: Contains the call and put prices for a specific number of days to
+      expiry
+    properties:
+      callPrice:
+        description: Call option price
+        type: number
+      daysToExpiry:
+        description: Days to expiry
+        type: number
+      putPrice:
+        description: Put option price
+        type: number
+    type: object
+  main.OptionChainResponse:
+    description: The response object for the CalculateOptionChain endpoint
+    properties:
+      assetName:
+        description: Name of the asset
+        type: string
+      assetStrikeExpiryPrices:
+        description: Option prices per asset price and strike price
+        items:
+          $ref: '#/definitions/main.AssetStrikeExpiryPrice'
+        type: array
+    type: object
+  main.StrikeExpiryPrice:
+    description: Contains call and put prices for different expiry dates at a given
+      strike price
+    properties:
+      expiryPrices:
+        description: Call and put prices per expiry date
+        items:
+          $ref: '#/definitions/main.ExpiryPrice'
+        type: array
+      strikePrice:
+        description: Strike price
+        type: number
+    type: object
+info:
+  contact: {}
+paths:
+  /optionChain:
+    get:
+      consumes:
+      - application/json
+      description: Calculates option prices for a range of asset prices, strike prices,
+        and days to expiry.
+      parameters:
+      - description: Name of asset
+        in: query
+        name: assetName
+        required: true
+        type: string
+      - description: Low end of asset price range
+        in: query
+        name: assetPriceLow
+        required: true
+        type: number
+      - description: High end of asset price range
+        in: query
+        name: assetPriceHigh
+        required: true
+        type: number
+      - description: Low end of strike price range
+        in: query
+        name: strikePriceLow
+        required: true
+        type: number
+      - description: High end of strike price range
+        in: query
+        name: strikePriceHigh
+        required: true
+        type: number
+      - description: Risk-free interest rate
+        in: query
+        name: riskFreeRate
+        required: true
+        type: number
+      - description: Volatility of the asset
+        in: query
+        name: volatility
+        required: true
+        type: number
+      - description: Days to expiry of the option
+        in: query
+        name: daysToExpiry
+        required: true
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.OptionChainResponse'
+      summary: Calculate option chain
+      tags:
+      - options
+swagger: "2.0"
