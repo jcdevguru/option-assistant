@@ -63,6 +63,8 @@ curl -X 'GET' \
   -H 'accept: application/json'
 ```
 
+A freshly restart server running locally on a Macbook Air M2 ran the above in 10.6 ms.
+
 The endpoint accepts query arguments as follows:
 
 
