@@ -1,67 +1,12 @@
-package lib
+package option
 
 import (
 	"fmt"
 	"math"
-	"time"
 )
-
-const (
-	Call = iota
-	Put
-)
-
-type Asset struct {
-	Name       string
-	Volatility float64
-	RfReturn   float64
-}
-
-type Option struct {
-	Asset  Asset
-	Type   int
-	Strike float64
-	Expiry float64
-}
-
-type Position struct {
-	Cost float64
-	Date time.Time
-}
-
-type AssetPosition struct {
-	Asset
-	Position
-}
-
-type OptionPosition struct {
-	Option
-	Position
-}
-
-type ValueSpan struct {
-	Low  float64
-	High float64
-	Step float64
-}
-
-type d1d2Calculation struct {
-	d1            float64
-	d2            float64
-	yearsToExpiry float64
-}
-
-type priceKey struct {
-	assetPrice   float64
-	strikePrice  float64
-	daysToExpiry float64
-}
-
-type d1d2CalculateFunc func(assetPrice, strikePrice float64) (*d1d2Calculation, error)
-type priceCalculatorFunc func(assetPrice, strikePrice, daysToExpiry float64) (float64, error)
 
 // Standard normal cumulative distribution function
-func NormCDF(x float64) float64 {
+func normalizedCDF(x float64) float64 {
 	return 0.5 * (1.0 + math.Erf(x/math.Sqrt(2.0)))
 }
 
@@ -92,17 +37,8 @@ func validateSpan(name string, span *ValueSpan) (float64, float64, float64, erro
 	return span.Low, span.High, span.Step, nil
 }
 
-type OptionChain struct {
-	CalculatePrice          priceCalculatorFunc
-	Volatility              float64
-	RiskFreeRate            float64
-	ExpiryInDays            float64
-	d1d2CalculateFuncMap    map[float64]d1d2CalculateFunc
-	d1d2CalculationValueMap map[priceKey]d1d2Calculation
-}
-
-func NewOptionChain(optionType int, volatility, riskFreeRate, expiryInDays float64) (*OptionChain, error) {
-	chain := OptionChain{
+func NewOptionChain(optionType int, volatility, riskFreeRate, expiryInDays float64) (*OptionChainCalculator, error) {
+	chain := OptionChainCalculator{
 		Volatility:   volatility,
 		RiskFreeRate: riskFreeRate,
 		ExpiryInDays: expiryInDays,
@@ -117,7 +53,7 @@ func NewOptionChain(optionType int, volatility, riskFreeRate, expiryInDays float
 	default:
 		return nil, fmt.Errorf("unrecognized optionType %d", optionType)
 	}
-	chain.CalculatePrice = priceCalculator
+	chain.calculatePrice = priceCalculator
 	chain.d1d2CalculateFuncMap = make(map[float64]d1d2CalculateFunc)
 	chain.d1d2CalculationValueMap = make(map[priceKey]d1d2Calculation)
 
@@ -126,7 +62,7 @@ func NewOptionChain(optionType int, volatility, riskFreeRate, expiryInDays float
 
 // Black-Scholes formula for call option price
 
-func (chain *OptionChain) d1d2calculator(daysToExpiry float64) (d1d2CalculateFunc, error) {
+func (chain *OptionChainCalculator) d1d2calculator(daysToExpiry float64) (d1d2CalculateFunc, error) {
 	yearsToExpiry := daysToExpiry / 365
 	sqrtT := math.Sqrt(yearsToExpiry)
 	maxReturn := (chain.RiskFreeRate + (chain.Volatility*chain.Volatility)/2.0) * yearsToExpiry
@@ -151,7 +87,7 @@ func (chain *OptionChain) d1d2calculator(daysToExpiry float64) (d1d2CalculateFun
 	}, nil
 }
 
-func (chain *OptionChain) calculateD1D2(assetPrice, strikePrice, daysToExpiry float64) (*d1d2Calculation, error) {
+func (chain *OptionChainCalculator) calculateD1D2(assetPrice, strikePrice, daysToExpiry float64) (*d1d2Calculation, error) {
 	var d1d2 d1d2Calculation
 	valueMap := chain.d1d2CalculationValueMap
 	key := priceKey{assetPrice, strikePrice, daysToExpiry}
@@ -177,26 +113,32 @@ func (chain *OptionChain) calculateD1D2(assetPrice, strikePrice, daysToExpiry fl
 	return &d1d2, nil
 }
 
-func (chain *OptionChain) BlackScholesCall(assetPrice, strikePrice, daysToExpiry float64) (float64, error) {
+func (chain *OptionChainCalculator) BlackScholesCall(assetPrice, strikePrice, daysToExpiry float64, position *OptionPosition) error {
 	d1d2, err := chain.calculateD1D2(assetPrice, strikePrice, daysToExpiry)
 	if err != nil {
-		return 0.0, err
+		return err
 	}
-	rc := assetPrice*NormCDF(d1d2.d1) - strikePrice*math.Exp(-chain.RiskFreeRate*d1d2.yearsToExpiry)*NormCDF(d1d2.d2)
-	return rc, nil
+	price := assetPrice*normalizedCDF(d1d2.d1) - strikePrice*math.Exp(-chain.RiskFreeRate*d1d2.yearsToExpiry)*normalizedCDF(d1d2.d2)
+	position.Price = price
+	position.Strike = strikePrice
+	position.DaysToExpiry = daysToExpiry
+	return nil
 }
 
 // Black-Scholes formula for put option price
-func (chain *OptionChain) BlackScholesPut(assetPrice, strikePrice, daysToExpiry float64) (float64, error) {
+func (chain *OptionChainCalculator) BlackScholesPut(assetPrice, strikePrice, daysToExpiry float64, position *OptionPosition) error {
 	d1d2, err := chain.calculateD1D2(assetPrice, strikePrice, daysToExpiry)
 	if err != nil {
-		return 0.0, err
+		return err
 	}
-	rc := strikePrice*math.Exp(-chain.RiskFreeRate*d1d2.yearsToExpiry)*NormCDF(-d1d2.d2) - assetPrice*NormCDF(-d1d2.d1)
-	return rc, nil
+	price := strikePrice*math.Exp(-chain.RiskFreeRate*d1d2.yearsToExpiry)*normalizedCDF(-d1d2.d2) - assetPrice*normalizedCDF(-d1d2.d1)
+	position.Price = price
+	position.Strike = strikePrice
+	position.DaysToExpiry = daysToExpiry
+	return nil
 }
 
-func (chain *OptionChain) ComputeOptionChain(assetPriceSpan, strikePriceSpan, daysToExpirySpan *ValueSpan) ([][][]float64, error) {
+func (chain *OptionChainCalculator) ComputeOptionChain(assetPriceSpan, strikePriceSpan, daysToExpirySpan *ValueSpan) (OptionChain, error) {
 	apLow, apHigh, apStep, err := validateSpan("assetPriceRange", assetPriceSpan)
 	if err != nil {
 		return nil, err
@@ -207,7 +149,7 @@ func (chain *OptionChain) ComputeOptionChain(assetPriceSpan, strikePriceSpan, da
 		return nil, err
 	}
 
-	dteLow, dteHigh, dteStep, err := validateSpan("strikePriceRange", strikePriceSpan)
+	dteLow, dteHigh, dteStep, err := validateSpan("daysToExpirySpan", daysToExpirySpan)
 	if err != nil {
 		return nil, err
 	}
@@ -215,22 +157,23 @@ func (chain *OptionChain) ComputeOptionChain(assetPriceSpan, strikePriceSpan, da
 		dteLow += dteStep
 	}
 
-	var strikeExpiryPricesPerAssetPrice [][][]float64
+	var result OptionChain
 	for assetPrice := apLow; assetPrice <= apHigh; assetPrice += apStep {
-		var expiryPricesPerStrike [][]float64
+		var strikePositionsPerAssetPrice [][]OptionPosition
 		for strikePrice := spLow; strikePrice <= spHigh; strikePrice += spStep {
-			var pricesPerExpiry []float64
+			var positionsPerStrike []OptionPosition
 			for dte := dteHigh; dte >= dteLow; dte -= dteStep {
-				price, err := chain.CalculatePrice(assetPrice, strikePrice, dte)
+				var optionPosition OptionPosition
+				err := chain.calculatePrice(assetPrice, strikePrice, dte, &optionPosition)
 				if err == nil {
-					pricesPerExpiry = append(pricesPerExpiry, price)
+					positionsPerStrike = append(positionsPerStrike, optionPosition)
 				} else {
 					return nil, err
 				}
 			}
-			expiryPricesPerStrike = append(expiryPricesPerStrike, pricesPerExpiry)
+			strikePositionsPerAssetPrice = append(strikePositionsPerAssetPrice, positionsPerStrike)
 		}
-		strikeExpiryPricesPerAssetPrice = append(strikeExpiryPricesPerAssetPrice, expiryPricesPerStrike)
+		result = append(result, strikePositionsPerAssetPrice)
 	}
-	return strikeExpiryPricesPerAssetPrice, nil
+	return result, nil
 }
