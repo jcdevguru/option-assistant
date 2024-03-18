@@ -12,14 +12,12 @@ func normalizedCDF(x float64) float64 {
 
 func validateSpan(name string, span *ValueSpan) (float64, float64, float64, error) {
 	var err error
-	if span.Low < 0 || span.High < 0 {
-		err = fmt.Errorf("%s: range Low, High cannot be negative", name)
+	if span.Low < 0 || span.High < 0 || span.Step < 0 {
+		err = fmt.Errorf("%s: span Low, High, Step cannot be negative", name)
 	} else if span.Low > span.High {
-		err = fmt.Errorf("%s: Low > High", name)
-	} else if span.Step <= 0 {
-		err = fmt.Errorf("%s: Step == 0.0", name)
-	} else if span.Step >= span.High-span.Low {
-		err = fmt.Errorf("%s: Step >= High - Low", name)
+		err = fmt.Errorf("%s: span Low > High", name)
+	} else if span.High > span.Low && span.Step == 0 {
+		err = fmt.Errorf("%s: span Step must be > 0 for Span.High > Span.Low", name)
 	} else {
 		for _, v := range []float64{span.Low, span.High, span.Step} {
 			cVal := v * 4.0

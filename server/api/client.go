@@ -39,14 +39,14 @@ type OptionChainQuery struct {
 	AssetName        string  `form:"assetName" binding:"required,min=2,alphanum"`
 	OptionType       string  `form:"optionType" binding:"required,oneof=Call Put"`
 	AssetPriceLow    float64 `form:"assetPriceLow" binding:"required,gt=0"`
-	AssetPriceHigh   float64 `form:"assetPriceHigh" binding:"required,gtfield=AssetPriceLow"`
-	AssetPriceStep   float64 `form:"assetPriceStep" binding:"required,gt=0"`
+	AssetPriceHigh   float64 `form:"assetPriceHigh" binding:"required,gtefield=AssetPriceLow"`
+	AssetPriceStep   float64 `form:"assetPriceStep,default=1.0" binding:"required,gt=0.0"`
 	StrikePriceLow   float64 `form:"strikePriceLow" binding:"required,gt=0"`
-	StrikePriceHigh  float64 `form:"strikePriceHigh" binding:"required,gtfield=StrikePriceLow"`
-	StrikePriceStep  float64 `form:"strikePriceStep" binding:"required,gt=0"`
+	StrikePriceHigh  float64 `form:"strikePriceHigh" binding:"required,gtefield=StrikePriceLow"`
+	StrikePriceStep  float64 `form:"strikePriceStep,default=1.0" binding:"required,gt=0.0"`
 	DaysToExpiryLow  float64 `form:"daysToExpiryLow" binding:"required,gt=0"`
-	DaysToExpiryHigh float64 `form:"daysToExpiryHigh" binding:"required,gtfield=DaysToExpiryLow"`
-	DaysToExpiryStep float64 `form:"daysToExpiryStep" binding:"required,gt=0"`
+	DaysToExpiryHigh float64 `form:"daysToExpiryHigh" binding:"required,gtefield=DaysToExpiryLow"`
+	DaysToExpiryStep float64 `form:"daysToExpiryStep,default=1.0" binding:"required,gt=0.0"`
 	RiskFreeRate     float64 `form:"riskFreeRate" binding:"required,gt=0"`
 	Volatility       float64 `form:"volatility" binding:"required,gt=0"`
 }
@@ -79,13 +79,13 @@ func encodeResponse(assetPriceSpan option.ValueSpan, chain option.OptionChain) [
 // @Param optionType query string true "Type of option (Call, Put)"
 // @Param assetPriceLow query float64 true "Low end of asset price range"
 // @Param assetPriceHigh query float64 true "High end of asset price range"
-// @Param assetPriceStep query float64 true "Step amount for asset price range"
+// @Param assetPriceStep query float64 false "Step amount for asset price range (default = 1.0)"
 // @Param strikePriceLow query float64 true "Low end of strike price range"
 // @Param strikePriceHigh query float64 true "High end of strike price range"
-// @Param strikePriceStep query float64 true "Step amount for strike price range"
+// @Param strikePriceStep query float64 false "Step amount for strike price range (default = 1.0)"
 // @Param daysToExpiryLow query float64 true "Low end of days to expiry range"
 // @Param daysToExpiryHigh query float64 true "High end of days to expiry range"
-// @Param daysToExpiryStep query float64 true "Step amount for days to expiry range"
+// @Param daysToExpiryStep query float64 false "Step amount for days to expiry range (default = 1.0)"
 // @Param riskFreeRate query float64 true "Risk-free interest rate"
 // @Param volatility query float64 true "Volatility of the asset"
 // @Success 200 {object} OptionChainResponse
