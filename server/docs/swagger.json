@@ -48,10 +48,9 @@
                     },
                     {
                         "type": "number",
-                        "description": "Step amount for asset price range",
+                        "description": "Step amount for asset price range (default = 1.0)",
                         "name": "assetPriceStep",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "number",
@@ -69,10 +68,9 @@
                     },
                     {
                         "type": "number",
-                        "description": "Step amount for strike price range",
+                        "description": "Step amount for strike price range (default = 1.0)",
                         "name": "strikePriceStep",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "number",
@@ -90,10 +88,9 @@
                     },
                     {
                         "type": "number",
-                        "description": "Step amount for days to expiry range",
+                        "description": "Step amount for days to expiry range (default = 1.0)",
                         "name": "daysToExpiryStep",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "number",
@@ -122,44 +119,20 @@
         }
     },
     "definitions": {
-        "api.OptionChainRequest": {
+        "api.AssetPrice_Strike_Positions": {
+            "description": "Contains strike and expiry prices for a given asset price",
             "type": "object",
             "properties": {
-                "assetPriceHigh": {
+                "assetPrice": {
+                    "description": "Asset price",
                     "type": "number"
                 },
-                "assetPriceLow": {
-                    "type": "number"
-                },
-                "assetPriceStep": {
-                    "type": "number"
-                },
-                "daysToExpiryHigh": {
-                    "type": "number"
-                },
-                "daysToExpiryLow": {
-                    "type": "number"
-                },
-                "daysToExpiryStep": {
-                    "type": "number"
-                },
-                "optionType": {
-                    "type": "string"
-                },
-                "riskFreeRate": {
-                    "type": "number"
-                },
-                "strikePriceHigh": {
-                    "type": "number"
-                },
-                "strikePriceLow": {
-                    "type": "number"
-                },
-                "strikePriceStep": {
-                    "type": "number"
-                },
-                "volatility": {
-                    "type": "number"
+                "strikePositions": {
+                    "description": "Option price/dtes per strike",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Strike_Positions"
+                    }
                 }
             }
         },
@@ -171,26 +144,43 @@
                     "description": "Name of the asset",
                     "type": "string"
                 },
-                "request": {
-                    "description": "Option chain request",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/api.OptionChainRequest"
-                        }
-                    ]
-                },
-                "values": {
-                    "description": "Option prices per asset price and strike price",
+                "optionChain": {
+                    "description": "Option price/dtes per asset price / strike",
                     "type": "array",
                     "items": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "type": "number"
-                            }
-                        }
+                        "$ref": "#/definitions/api.AssetPrice_Strike_Positions"
                     }
+                }
+            }
+        },
+        "api.Position": {
+            "description": "Contains the call and put prices for a specific number of days to expiry",
+            "type": "object",
+            "properties": {
+                "daysToExpiry": {
+                    "description": "Days to expiry",
+                    "type": "number"
+                },
+                "price": {
+                    "description": "Option price",
+                    "type": "number"
+                }
+            }
+        },
+        "api.Strike_Positions": {
+            "description": "Contains option prices for different expiry dates at a given strike price",
+            "type": "object",
+            "properties": {
+                "positions": {
+                    "description": "Option prices per expiry date",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Position"
+                    }
+                },
+                "strikePrice": {
+                    "description": "Strike price",
+                    "type": "number"
                 }
             }
         }

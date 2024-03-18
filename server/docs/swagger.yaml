@@ -1,30 +1,15 @@
 definitions:
-  api.OptionChainRequest:
+  api.AssetPrice_Strike_Positions:
+    description: Contains strike and expiry prices for a given asset price
     properties:
-      assetPriceHigh:
+      assetPrice:
+        description: Asset price
         type: number
-      assetPriceLow:
-        type: number
-      assetPriceStep:
-        type: number
-      daysToExpiryHigh:
-        type: number
-      daysToExpiryLow:
-        type: number
-      daysToExpiryStep:
-        type: number
-      optionType:
-        type: string
-      riskFreeRate:
-        type: number
-      strikePriceHigh:
-        type: number
-      strikePriceLow:
-        type: number
-      strikePriceStep:
-        type: number
-      volatility:
-        type: number
+      strikePositions:
+        description: Option price/dtes per strike
+        items:
+          $ref: '#/definitions/api.Strike_Positions'
+        type: array
     type: object
   api.OptionChainResponse:
     description: The response object for the CalculateOptionChain endpoint
@@ -32,19 +17,35 @@ definitions:
       assetName:
         description: Name of the asset
         type: string
-      request:
-        allOf:
-        - $ref: '#/definitions/api.OptionChainRequest'
-        description: Option chain request
-      values:
-        description: Option prices per asset price and strike price
+      optionChain:
+        description: Option price/dtes per asset price / strike
         items:
-          items:
-            items:
-              type: number
-            type: array
-          type: array
+          $ref: '#/definitions/api.AssetPrice_Strike_Positions'
         type: array
+    type: object
+  api.Position:
+    description: Contains the call and put prices for a specific number of days to
+      expiry
+    properties:
+      daysToExpiry:
+        description: Days to expiry
+        type: number
+      price:
+        description: Option price
+        type: number
+    type: object
+  api.Strike_Positions:
+    description: Contains option prices for different expiry dates at a given strike
+      price
+    properties:
+      positions:
+        description: Option prices per expiry date
+        items:
+          $ref: '#/definitions/api.Position'
+        type: array
+      strikePrice:
+        description: Strike price
+        type: number
     type: object
 info:
   contact: {}
@@ -76,10 +77,9 @@ paths:
         name: assetPriceHigh
         required: true
         type: number
-      - description: Step amount for asset price range
+      - description: Step amount for asset price range (default = 1.0)
         in: query
         name: assetPriceStep
-        required: true
         type: number
       - description: Low end of strike price range
         in: query
@@ -91,10 +91,9 @@ paths:
         name: strikePriceHigh
         required: true
         type: number
-      - description: Step amount for strike price range
+      - description: Step amount for strike price range (default = 1.0)
         in: query
         name: strikePriceStep
-        required: true
         type: number
       - description: Low end of days to expiry range
         in: query
@@ -106,10 +105,9 @@ paths:
         name: daysToExpiryHigh
         required: true
         type: number
-      - description: Step amount for days to expiry range
+      - description: Step amount for days to expiry range (default = 1.0)
         in: query
         name: daysToExpiryStep
-        required: true
         type: number
       - description: Risk-free interest rate
         in: query
